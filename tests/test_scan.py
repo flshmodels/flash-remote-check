@@ -1,7 +1,6 @@
 import contextlib
 import io
 import json
-import os
 import random
 from pathlib import Path
 import subprocess
@@ -96,6 +95,14 @@ class AnalyzerTests(unittest.TestCase):
 
     def test_type_annotations_are_not_runtime_validation(self):
         self.assertIn(('RMC001','warning'),rules(event('', 'player: Player, value: number')))
+
+    def test_typeof_annotation_and_assignment_are_not_guard_evidence(self):
+        for body in ('local copy: typeof(value) = value', 'local kind = typeof(value)', 'type Kind = typeof(value)'):
+            with self.subTest(body=body):
+                self.assertIn(('RMC001','warning'),rules(event(body)))
+
+    def test_elseif_type_guard_is_observed(self):
+        self.assertIn(('RMC001','note'),rules(event('if false then return elseif type(value) ~= "number" then return end')))
 
     def test_observed_calls_still_have_review_notes(self):
         hints=rules(event('if not limiter:allow(player.UserId) then return end\nif typeof(value) ~= "number" then return end'))
@@ -261,7 +268,7 @@ class FilesAndCliTests(unittest.TestCase):
         self.assertEqual(file.read_bytes(),before)
 
     def test_sarif_paths_and_coordinates(self):
-        file=self.write('folder space/café.luau','-- heading\n'+event())
+        file=self.write('folder space/cafÃ©.luau','-- heading\n'+event())
         report=sarif(scan(self.root))
         location=report['runs'][0]['results'][0]['locations'][0]['physicalLocation']
         self.assertEqual(location['artifactLocation']['uri'],'folder%20space/caf%C3%A9.luau')
