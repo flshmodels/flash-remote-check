@@ -268,7 +268,7 @@ class FilesAndCliTests(unittest.TestCase):
         self.assertEqual(file.read_bytes(),before)
 
     def test_sarif_paths_and_coordinates(self):
-        file=self.write('folder space/cafÃ©.luau','-- heading\n'+event())
+        file=self.write('folder space/caf\u00e9.luau','-- heading\n'+event())
         report=sarif(scan(self.root))
         location=report['runs'][0]['results'][0]['locations'][0]['physicalLocation']
         self.assertEqual(location['artifactLocation']['uri'],'folder%20space/caf%C3%A9.luau')
