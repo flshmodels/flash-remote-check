@@ -106,10 +106,20 @@ def analyze(source, path='<memory>', rate_helpers=DEFAULT_RATE_HELPERS):
         payload = set(names[1:]) | ({'...'} if '...' in names else set())
         entry.update(analyzed=True, parameters=names, endLine=tokens[ending].line)
         body = own_body(tokens, pairs[opening] + 1, ending, pairs)
+        conditions = set()
+        in_condition = False
+        for position in body:
+            part = tokens[position]
+            if part.kind == 'word' and part.value in ('if', 'elseif'):
+                in_condition = True
+            elif part.kind == 'word' and part.value == 'then':
+                in_condition = False
+            if in_condition:
+                conditions.add(position)
         found_calls = list(calls(tokens, body, pairs))
         for call_index, name, arguments in found_calls:
             mentioned = sorted({a.value for a in arguments if a.kind == 'word' and a.value in payload} | ({'...'} if '...' in payload and any(a.value == '...' for a in arguments) else set()))
-            if name in ('type', 'typeof', 'assert') and mentioned:
+            if mentioned and (name == 'assert' or name in ('type', 'typeof') and call_index in conditions):
                 entry['typeCalls'].append({'name':name,'line':tokens[call_index].line,'parameters':mentioned})
             if name in rate_helpers:
                 entry['rateCalls'].append({'name':name,'line':tokens[call_index].line})
@@ -118,7 +128,7 @@ def analyze(source, path='<memory>', rate_helpers=DEFAULT_RATE_HELPERS):
             if mentioned and name == 'require':
                 findings.append(diagnostic(path, tokens[call_index], 'RMC004', 'warning', 'A payload name appears in require arguments. Use a server-owned module allowlist; review this call manually.'))
         if payload and not entry['typeCalls']:
-            findings.append(diagnostic(path, token, 'RMC001', 'warning', 'No direct type/typeof/assert call involving a payload name was observed. Review type, size, finite bounds and game permissions; helper checks may exist elsewhere.'))
+            findings.append(diagnostic(path, token, 'RMC001', 'warning', 'No direct assert call or type/typeof call in an if/elseif condition involving a payload name was observed. Review types, bounds and game permissions; helper checks may exist elsewhere.'))
         else:
             findings.append(diagnostic(path, token, 'RMC001', 'note', 'Review this inbound boundary for game permissions, bounds and check ordering. Observed calls and type annotations do not prove validation.'))
         if not entry['rateCalls']:
