@@ -30,7 +30,7 @@ The first is deliberately unchecked and returns exit 1. **Do not install it in a
 | Rule | Review hint |
 | --- | --- |
 | RMC000 | A file or scope could not be fully processed. |
-| RMC001 | Review payload validation. Reports whether a direct type/typeof/assert call mentions a payload name. |
+| RMC001 | Review payload validation. Looks for a direct assert call, or a type/typeof call in an if/elseif condition, mentioning a payload name. |
 | RMC002 | Review throttling. Reports whether a configured helper name appears in a call. |
 | RMC003 | A payload name appears in FireAllClients arguments. |
 | RMC004 | A payload name appears in require arguments. |
